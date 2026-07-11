@@ -1,7 +1,7 @@
 name: Publish API
 
 # Publishes the addon API to GitHub Packages so addon projects can compile
-# against it. Triggered by a version tag:
+# against it, and attaches the plugin jar to a GitHub Release.
 #
 #   git tag v1.0.0 && git push origin v1.0.0
 on:
@@ -9,8 +9,8 @@ on:
     tags: [ 'v*' ]
 
 permissions:
-  contents: read
-  packages: write   # required, or the publish 403s
+  contents: write   # create the release
+  packages: write   # publish to GitHub Packages (without this it 403s)
 
 jobs:
   publish:
@@ -26,11 +26,18 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       # Version comes from the tag (v1.0.0 -> 1.0.0). `build` runs the tests, so
-      # a broken API is never published.
-      - name: Build & publish
+      # a broken API never gets published.
+      - name: Build & publish API
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x ./gradlew
           ./gradlew build publishApi --no-daemon -Pversion=${GITHUB_REF_NAME#v}
+
+      - name: Release the plugin jar
+        uses: softprops/action-gh-release@v2
+        with:
+          files: plugin/build/libs/*.jar   # multi-module: jar lives here
+          generate_release_notes: true
+          fail_on_unmatched_files: true

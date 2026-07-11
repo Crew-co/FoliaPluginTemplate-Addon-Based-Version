@@ -8,17 +8,11 @@ val foliaApiVersion = rootProject.property("foliaApiVersion") as String
 val minecraftVersion = foliaApiVersion.substringBefore("-R")
 
 dependencies {
-    // `api` (not implementation) so these modules' classes are exported to the
-    // addon classloaders — addons must see the SAME Addon/Menu classes the host
-    // uses, or `instanceof Addon` fails despite matching names.
+    // `api`, not `implementation`: the addon API's classes must be visible to the
+    // addon classloaders, which use the plugin's classloader as their parent.
     api(project(":addon-api"))
-    api(project(":gui"))
 
     implementation(kotlin("stdlib"))
-}
-
-kotlin {
-    jvmToolchain(21)
 }
 
 paper {
@@ -27,20 +21,15 @@ paper {
     apiVersion = "1.21"
     foliaSupported = true // REQUIRED — Folia won't load the plugin without it
     authors = listOf("YourName")
-    description = "Folia Kotlin template with an addon system and GUI framework."
+    description = "A Folia plugin template with a dynamic addon system."
 }
 
 tasks {
     shadowJar {
         archiveBaseName.set("FoliaTemplate")
         archiveClassifier.set("")
-        // NOTE: do NOT relocate the addon-api or gui packages. Addons compile
-        // against those exact package names; relocating would rename them at
-        // runtime and every addon would fail to load.
-        //
-        // Relocating the Kotlin runtime is fine (it isn't part of the addon API
-        // surface) — but if your addons are written in Kotlin and rely on the
-        // host's stdlib, leave it alone. Safest default: leave it unrelocated.
+        // Do NOT relocate com.example.foliatemplate.addon — addons compile against
+        // those exact package names; renaming them at runtime breaks every addon.
     }
     build { dependsOn(shadowJar) }
     jar { enabled = false }

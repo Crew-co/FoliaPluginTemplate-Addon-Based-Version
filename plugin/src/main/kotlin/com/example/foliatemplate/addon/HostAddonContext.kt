@@ -94,14 +94,19 @@ class HostAddonContext(
         override fun regionDelayed(location: Location, delayTicks: Long, task: () -> Unit) =
             track(s.regionDelayed(location, delayTicks, task))
 
+        override fun regionRepeating(
+            location: Location,
+            initialDelayTicks: Long,
+            periodTicks: Long,
+            task: (ScheduledTask) -> Unit,
+        ) = track(s.regionRepeating(location, initialDelayTicks, periodTicks, task))
+
         override fun entity(entity: Entity, retired: (() -> Unit)?, task: () -> Unit) =
             s.entity(entity, retired, task)?.also { track(it) }
 
         override fun entityDelayed(entity: Entity, delayTicks: Long, retired: (() -> Unit)?, task: () -> Unit) =
             s.entityDelayed(entity, delayTicks, retired, task)?.also { track(it) }
 
-        // Required by MenuSchedulers (which AddonSchedulers extends) — this is
-        // what lets addons drive animated menus.
         override fun entityRepeating(
             entity: Entity,
             initialDelayTicks: Long,

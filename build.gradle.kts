@@ -15,7 +15,7 @@ subprojects {
     }
 
     dependencies {
-        // Folia API is provided by the server at runtime — never bundled.
+        // Provided by the server at runtime — never bundled.
         "compileOnly"("dev.folia:folia-api:${rootProject.property("foliaApiVersion")}")
     }
 
@@ -26,16 +26,21 @@ subprojects {
 
 /**
  * Publishes the addon API to GitHub Packages so addon projects can compile
- * against it. Both modules are published: addon-api exposes gui as an `api`
- * dependency, so an addon resolving the former must resolve the latter too.
+ * against it.
  *
  *   ./gradlew publishApi        → GitHub Packages (CI does this on a version tag)
  *   ./gradlew publishApiLocally → your ~/.m2, for testing an addon locally
  */
-configure(listOf(project(":addon-api"), project(":gui"))) {
+project(":addon-api") {
     apply(plugin = "maven-publish")
 
     configure<PublishingExtension> {
+        publications {
+            create<MavenPublication>("maven") {
+                from(components["java"])
+                artifactId = "folia-template-addon-api"
+            }
+        }
         repositories {
             maven {
                 name = "GitHubPackages"
@@ -51,12 +56,12 @@ configure(listOf(project(":addon-api"), project(":gui"))) {
 
 tasks.register("publishApi") {
     group = "publishing"
-    description = "Publishes addon-api + gui to GitHub Packages."
-    dependsOn(":addon-api:publishAllPublicationsToGitHubPackagesRepository", ":gui:publishAllPublicationsToGitHubPackagesRepository")
+    description = "Publishes the addon API to GitHub Packages."
+    dependsOn(":addon-api:publishAllPublicationsToGitHubPackagesRepository")
 }
 
 tasks.register("publishApiLocally") {
     group = "publishing"
-    description = "Publishes addon-api + gui to mavenLocal, for building an addon against a local host."
-    dependsOn(":addon-api:publishToMavenLocal", ":gui:publishToMavenLocal")
+    description = "Publishes the addon API to mavenLocal, for building an addon against a local host."
+    dependsOn(":addon-api:publishToMavenLocal")
 }

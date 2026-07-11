@@ -1,7 +1,6 @@
 package com.example.foliatemplate.scheduler
 
 import com.example.foliatemplate.addon.AddonSchedulers
-import com.example.foliatemplate.gui.MenuSchedulers
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.Bukkit
 import org.bukkit.Location
@@ -20,13 +19,11 @@ import java.util.concurrent.TimeUnit
  *  - [entity] → a specific entity or player
  *  - [async]  → I/O; never touch world state here
  *
- * This one class satisfies both [AddonSchedulers] (what addons get) and
- * [MenuSchedulers] (what the GUI module needs), which is what lets those two
- * modules stay independent of the plugin.
+ * This implements [AddonSchedulers], which is what addons are handed.
  *
  * Ticks: 20 = 1 second. Async helpers take a real duration instead.
  */
-class Schedulers(private val plugin: Plugin) : AddonSchedulers, MenuSchedulers {
+class Schedulers(private val plugin: Plugin) : AddonSchedulers {
 
     // ---- global region ------------------------------------------------------
 
@@ -51,7 +48,7 @@ class Schedulers(private val plugin: Plugin) : AddonSchedulers, MenuSchedulers {
     override fun regionDelayed(location: Location, delayTicks: Long, task: () -> Unit): ScheduledTask =
         Bukkit.getRegionScheduler().runDelayed(plugin, location, { task() }, delayTicks)
 
-    fun regionRepeating(
+    override fun regionRepeating(
         location: Location,
         initialDelayTicks: Long,
         periodTicks: Long,

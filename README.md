@@ -1,14 +1,15 @@
-# Folia 1.21.11 Kotlin Template — Addons + GUI Framework
+# Folia 1.21.11 Kotlin Plugin Template — Addon System
 
-A multi-module Folia plugin template with a **runtime addon system** (third-party jars hook into your plugin) and a **GUI framework** (pagination, live/animated items, chat prompts, confirm dialogs).
+A Folia plugin that generates an `addons/` folder and **dynamically loads addon jars** at runtime, exposing a small, stable API they compile against.
 
 - Target: `dev.folia:folia-api:1.21.11-R0.1-SNAPSHOT` (Java 21)
-- Build: Gradle (Kotlin DSL), multi-module, Shadow fat jar
+- Build: Gradle (Kotlin DSL), Shadow fat jar
+- The API is published to GitHub Packages, so addon projects can depend on it
 
 ```bash
-./gradlew build                    # builds everything
-./gradlew :plugin:runFolia         # test server with the plugin loaded
-./gradlew publishApiLocally        # publish addon-api + gui for addon developers
+./gradlew build              # → plugin/build/libs/FoliaTemplate-1.0.0.jar
+./gradlew :plugin:runFolia   # test server with the plugin loaded
+./gradlew publishApiLocally  # publish the API to ~/.m2 for local addon dev
 ```
 
 ---
@@ -17,18 +18,15 @@ A multi-module Folia plugin template with a **runtime addon system** (third-part
 
 ```
 folia-template/
-├── gui/        → menu framework. Standalone: depends only on the Folia API.
-├── addon-api/  → the public contract: Addon/AddonContext, the @Command
-│                 annotations + CommandContext, and (via gui) the menu classes.
-└── plugin/     → the host server plugin. Shades gui + addon-api, and holds the
-                  internals (CommandManager, AddonManager, classloading).
+├── addon-api/  → the small, stable contract addons compile against. PUBLISHED.
+└── plugin/     → the plugin itself: addon loading, classloaders, commands.
 ```
 
-The split is deliberate: anything an addon *writes against* lives in `addon-api`, while the machinery that *registers* it stays in `plugin`. That's why `@Command`/`CommandContext` are in the API but `CommandManager` isn't.
+Two modules for one reason: addon developers should compile against a *small, stable* API, not your whole plugin. `addon-api` is the only thing published.
 
-Dependency direction is one-way (`gui` ← `addon-api` ← `plugin`), so the GUI framework and the addon API can each be reused without dragging the plugin along.
+Anything an addon **writes against** lives in `addon-api` (`Addon`, `AddonContext`, `AddonSchedulers`, the `@Command` annotations, `CommandContext`). The machinery that **registers** it stays in `plugin` (`AddonManager`, `CommandManager`, the classloaders).
 
-**Addons are a separate project.** See the companion **folia-addon-template** — addon developers build against your *published* `addon-api` artifact and never need to clone this repo.
+> **Note:** the plugin jar builds to `plugin/build/libs/`, not the root `build/libs/` — worth knowing if you edit the CI paths.
 
 ---
 
@@ -90,69 +88,6 @@ compileOnly("com.example:folia-template-addon-api:1.0.0")
 For local testing without publishing: `./gradlew publishApiLocally` (→ your `~/.m2`).
 
 > Tell your addon devs: GitHub Packages needs a token **even for public packages** (a PAT with `read:packages`). The addon template documents this — it's the #1 source of confusion.
-
----
-
-## The GUI framework
-
-All menus are **holder-based**: a `Menu` *is* its inventory's `InventoryHolder`, so `MenuListener` finds it with `topInventory.holder is Menu`. There's no global open-menus registry to synchronize — which removes the biggest source of GUI race conditions on Folia by construction.
-
-Create **one instance per player per open**; `open()`/`refresh()`/clicks all run on that player's region thread, so a menu is effectively single-threaded and needs no locks.
-
-### Basic menu
-```kotlin
-class MyMenu(plugin: FoliaTemplatePlugin) : Menu(plugin.schedulers, mm("<gold>Title"), rows = 3) {
-    override fun build(player: Player) {
-        button(13, icon(Material.DIAMOND, "<aqua>Click me", "<gray>lore line")) { ctx ->
-            ctx.reply("<green>Clicked!")
-            ctx.close()
-        }
-        border(icon(Material.GRAY_STAINED_GLASS_PANE, " "))
-    }
-}
-MyMenu(plugin).open(player)
-```
-
-### Pagination
-Extend `PaginatedMenu<T>` — nav buttons, page state, and clamping are handled:
-```kotlin
-class KitsMenu(plugin: FoliaTemplatePlugin, val kits: List<Kit>) :
-    PaginatedMenu<Kit>(plugin.schedulers, mm("<gold>Kits"), rows = 6) {
-    override fun items() = kits
-    override fun render(item: Kit) = icon(item.material, "<yellow>${item.name}")
-    override fun onClick(item: Kit, context: ClickContext) { item.give(context.player) }
-    override fun decorate(player: Player) { /* extra nav-row buttons */ }
-}
-```
-
-### Live / animated items
-`refresh()` redraws **in place** — the inventory stays open, so there's no flicker and no cursor reset (unlike re-opening). `animate(periodTicks)` does it on a timer, on the viewer's region thread, and stops itself when the menu closes:
-```kotlin
-override fun onOpen(player: Player) {
-    animate(periodTicks = 5L) { frame -> spinnerFrame = frame }  // redraws 4x/sec
-}
-```
-
-### Chat input prompts
-```kotlin
-ChatPrompt.ask(
-    plugin.prompts, ctx.player,
-    prompt = "<yellow>Type an amount (or 'cancel'):",
-    onInput = { player, text -> /* ... */ MyMenu(plugin).open(player) },
-    onCancel = { player -> MyMenu(plugin).open(player) },
-)
-```
-Chat fires **async** on Folia, so pending prompts live in a `ConcurrentHashMap` and the callback is hopped back onto the player's region thread before it runs — meaning you can safely open menus and touch the player inside `onInput`.
-
-### Confirm dialogs
-```kotlin
-ConfirmMenu(plugin.schedulers, mm("<red>Are you sure?"),
-    onConfirm = { p -> doIt(p) },
-    onDeny = { p -> MyMenu(plugin).open(p) },
-).open(player)
-```
-
-`/menu` opens `DemoMenu`, which exercises all four features at once.
 
 ---
 
