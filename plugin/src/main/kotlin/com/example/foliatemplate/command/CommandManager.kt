@@ -32,7 +32,11 @@ class CommandManager(private val plugin: JavaPlugin) {
 
         val index = index(handler)
         val command = Dispatcher(plugin, handler, meta, index)
-        plugin.server.commandMap.register(fallbackPrefix, command)
+        val success = plugin.server.commandMap.register(fallbackPrefix, command)
+
+        plugin.logger.info("Registered '${meta.name}' = $success")
+        plugin.logger.info("Lookup = ${plugin.server.commandMap.getCommand(meta.name)}")
+        plugin.logger.info("Prefixed = ${plugin.server.commandMap.getCommand("$fallbackPrefix:${meta.name}")}")
     }
 
     /** Register several handlers at once. */
