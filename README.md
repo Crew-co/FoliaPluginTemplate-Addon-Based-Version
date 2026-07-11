@@ -78,7 +78,7 @@ githubRepo=YourName/folia-template
 git tag v1.0.0 && git push origin v1.0.0
 ```
 
-`.github/workflows/publish.yml` builds, tests, and publishes `addon-api` + `gui` to GitHub Packages, versioned from the tag. No secrets to configure — the built-in `GITHUB_TOKEN` covers it. (Both modules are published because `addon-api` exposes `gui` as an `api` dependency.)
+`.github/workflows/publish.yml` builds, tests, and publishes `addon-api`  to GitHub Packages, versioned from the tag. No secrets to configure — the built-in `GITHUB_TOKEN` covers it. (Both modules are published because `addon-api` exposes  as an `api` dependency.)
 
 Addons then depend on it:
 ```kotlin

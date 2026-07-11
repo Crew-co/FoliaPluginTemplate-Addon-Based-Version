@@ -1,7 +1,6 @@
 package com.example.foliatemplate.addon
 
 import com.example.foliatemplate.FoliaTemplatePlugin
-import com.example.foliatemplate.FoliaTemplatePlugin.Companion.commands
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.Location
 import org.bukkit.entity.Entity
@@ -42,7 +41,7 @@ class HostAddonContext(
 
     override fun registerCommand(handler: Any) {
         // Commands go through the host's CommandManager (same @Command annotations).
-        commands.register(handler)
+        host.commands.register(handler)
     }
 
     override fun registerListener(listener: Listener) {
@@ -80,7 +79,7 @@ class HostAddonContext(
 
     /** Delegates to the host's Schedulers, recording tasks for cleanup. */
     private inner class TrackedSchedulers : AddonSchedulers {
-        private val s get() = schedulers
+        private val s get() = host.schedulers
 
         override fun global(task: () -> Unit) = track(s.global(task))
 

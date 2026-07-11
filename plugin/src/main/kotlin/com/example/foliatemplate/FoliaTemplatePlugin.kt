@@ -17,14 +17,12 @@ import org.bukkit.plugin.java.JavaPlugin
  */
 class FoliaTemplatePlugin : JavaPlugin() {
 
-companion object{
     lateinit var schedulers: Schedulers
         private set
 
     lateinit var commands: CommandManager
         private set
 
-}
     lateinit var addons: AddonManager
         private set
 
