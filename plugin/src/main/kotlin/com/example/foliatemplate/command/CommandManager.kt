@@ -32,8 +32,7 @@ class CommandManager(private val plugin: JavaPlugin) {
 
         val index = index(handler)
         val command = Dispatcher(plugin, handler, meta, index)
-        val success = plugin.server.commandMap.register(fallbackPrefix, command)
-
+        plugin.server.commandMap.register(fallbackPrefix, command)
     }
 
     /** Register several handlers at once. */
